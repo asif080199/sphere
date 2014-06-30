@@ -450,35 +450,49 @@ __host__ void DEM::transferToHelperDevices()
     
     for (int d=0; d<ndevices; d++) {
 
-        // do not allocate memory on primary GPU
         if (d == device)
             continue;
 
         cudaSetDevice(d);
 
         // copy all input memory from main device to helper device(s)
-        cudaMemcpyPeer(hdev_gridParticleIndex[d], d,
-                       dev_gridParticleIndex, device, sizeof(unsigned)*np);
-        cudaMemcpyPeer(hdev_cellStart[d], d, dev_cellStart, device,
-                       sizeof(unsigned)*grid.num[0]*grid.num[1]*grid.num[2]);
-        cudaMemcpyPeer(hdev_cellEnd[d], d, dev_cellEnd, device,
-                       sizeof(unsigned)*grid.num[0]*grid.num[1]*grid.num[2]);
-        cudaMemcpyPeer(hdev_x[d], d, dev_x, device, memSizeF4);
-        cudaMemcpyPeer(hdev_x_sorted[d], d, dev_x_sorted, device, memSizeF4);
-        cudaMemcpyPeer(hdev_vel[d], d, dev_vel, device, memSizeF4);
-        cudaMemcpyPeer(hdev_vel_sorted[d], d,
-                       dev_vel_sorted, device, memSizeF4);
-        cudaMemcpyPeer(hdev_angvel[d], d, dev_angvel, device, memSizeF4);
-        cudaMemcpyPeer(hdev_angvel_sorted[d], d,
-                       dev_angvel_sorted, device, memSizeF4);
-        cudaMemcpyPeer(hdev_walls_nx[d], d,
-                       dev_walls_nx, device, sizeof(Float4)*walls.nw);
-        cudaMemcpyPeer(hdev_walls_mvfd[d], d,
-                       dev_walls_mvfd, device, sizeof(Float4)*walls.nw);
-        cudaMemcpyPeer(hdev_distmod[d], d,
-                       dev_distmod, device, memSizeF4*NC);
+        cudaMemcpyPeerAsync(hdev_gridParticleIndex[d], d,
+                            dev_gridParticleIndex, device,
+                            sizeof(unsigned)*np, stream[d]);
+        cudaMemcpyPeerAsync(hdev_cellStart[d], d,
+                            dev_cellStart, device,
+                            sizeof(unsigned)*grid.num[0]*grid.num[1]*grid.num[2],
+                            stream[d]);
+        cudaMemcpyPeerAsync(hdev_cellEnd[d], d,
+                            dev_cellEnd, device,
+                            sizeof(unsigned)*grid.num[0]*grid.num[1]*grid.num[2],
+                            stream[d]);
+        cudaMemcpyPeerAsync(hdev_x[d], d, dev_x, device, memSizeF4, stream[d]);
+        cudaMemcpyPeerAsync(hdev_x_sorted[d], d, dev_x_sorted, device,
+                            memSizeF4, stream[d]);
+        cudaMemcpyPeerAsync(hdev_vel[d], d, dev_vel, device,
+                            memSizeF4, stream[d]);
+        cudaMemcpyPeerAsync(hdev_vel_sorted[d], d, dev_vel_sorted, device,
+                            memSizeF4, stream[d]);
+        cudaMemcpyPeerAsync(hdev_angvel[d], d, dev_angvel, device,
+                            memSizeF4, stream[d]);
+        cudaMemcpyPeerAsync(hdev_angvel_sorted[d], d, dev_angvel_sorted, device,
+                            memSizeF4, stream[d]);
+        cudaMemcpyPeerAsync(hdev_walls_nx[d], d, dev_walls_nx, device,
+                            sizeof(Float4)*walls.nw, stream[d]);
+        cudaMemcpyPeerAsync(hdev_walls_mvfd[d], d, dev_walls_mvfd, device,
+                            sizeof(Float4)*walls.nw, stream[d]);
+        cudaMemcpyPeerAsync(hdev_distmod[d], d, dev_distmod, device,
+                            memSizeF4*NC, stream[d]);
 
+    }
+
+    for (int d=0; d<ndevices; d++) {
+        if (d == device)
+            continue;
+        cudaSetDevice(d);
         checkForCudaErrors("During transferToHelperDevice");
+        cudaStreamSynchronize(stream[d]);
     }
     cudaSetDevice(device); // select main device
 }
