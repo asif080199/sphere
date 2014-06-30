@@ -412,7 +412,25 @@ __host__ void DEM::allocateHelperDeviceMemory(void)
 
         checkForCudaErrors("During allocateGlobalDeviceMemoryOtherDevices");
     }
-    cudaSetDevice(device); // select main GPU
+    cudaSetDevice(device); // select main device
+}
+
+// Transfer full input array values from main devices to helper devices
+__host__ void DEM::transferToHelperDevices()
+{
+
+    for (int d=0; d<ndevices; d++) {
+
+        // do not allocate memory on primary GPU
+        if (d == device)
+            continue;
+
+        cudaSetDevice(d);
+
+
+    }
+    cudaSetDevice(device); // select main device
+
 }
 
 __host__ void DEM::freeHelperDeviceMemory()
