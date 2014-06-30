@@ -535,16 +535,14 @@ __host__ void DEM::freeHelperDeviceMemory()
         cudaFree(hdev_walls_mvfd[d]);
         cudaFree(hdev_distmod[d]);
 
-        cudaFree(hdev_force[d]);
-        cudaFree(hdev_torque[d]);
-        cudaFree(hdev_es_dot[d]);
-        cudaFree(hdev_ev_dot[d]);
-        cudaFree(hdev_es[d]);
-        cudaFree(hdev_ev[d]);
-        cudaFree(hdev_p[d]);
-        cudaFree(hdev_walls_force_pp[d]);
-        cudaFree(hdev_contacts[d]);
-        cudaFree(hdev_delta_t[d]);
+        cudaFree(hdev_force_sorted[d]);
+        cudaFree(hdev_torque_sorted[d]);
+        cudaFree(hdev_es_dot_sorted[d]);
+        cudaFree(hdev_ev_dot_sorted[d]);
+        cudaFree(hdev_p_sorted[d]);
+        cudaFree(hdev_walls_force_pp_sorted[d]);
+        cudaFree(hdev_contacts_sorted[d]);
+        cudaFree(hdev_delta_t_sorted[d]);
 
         checkForCudaErrors("During helper device cudaFree calls");
     }

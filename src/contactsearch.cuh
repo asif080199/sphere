@@ -743,7 +743,7 @@ __global__ void sortedToUnsorted(
         Float4 delta_t[NC];
         for (unsigned int i=0; i<NC; i++) {
             contacts[i] = dev_contacts_sorted[idx*devC_nc + i];
-            delta_t[i]  = dev_delta_t_sorted[idx*devC_nc + i]
+            delta_t[i]  = dev_delta_t_sorted[idx*devC_nc + i];
         }
 
         __syncthreads();

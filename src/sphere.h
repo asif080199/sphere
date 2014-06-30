@@ -151,7 +151,7 @@ class DEM {
         
         // Transfer to and from helper devices
         void transferToHelperDevices();
-        //void transferFromHelperDevices();
+        void transferFromHelperDevices();
 
         // Free dynamically allocated global device memory
         void freeGlobalDeviceMemory();
@@ -239,16 +239,14 @@ class DEM {
         Float4** hdev_distmod;
 
         // Helper device arrays, output
-        Float4** hdev_force;
-        Float4** hdev_torque;
-        Float4** hdev_delta_t;
-        Float** hdev_es_dot;
-        Float** hdev_es;
-        Float** hdev_ev_dot;
-        Float** hdev_ev;
-        Float** hdev_p;
-        Float** hdev_walls_force_pp;
-        unsigned int** hdev_contacts;
+        Float4** hdev_force_sorted;
+        Float4** hdev_torque_sorted;
+        Float4** hdev_delta_t_sorted;
+        Float** hdev_es_dot_sorted;
+        Float** hdev_ev_dot_sorted;
+        Float** hdev_p_sorted;
+        Float** hdev_walls_force_pp_sorted;
+        unsigned int** hdev_contacts_sorted;
 
 
         //// Navier Stokes functions
