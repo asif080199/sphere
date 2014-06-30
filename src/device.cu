@@ -349,8 +349,8 @@ __host__ void DEM::allocateHelperDeviceMemory(void)
 
     // Initialize pointers to per-GPU arrays
     hdev_gridParticleIndex = (unsigned**)malloc(ndevices*sizeof(unsigned*));
-    hdev_gridCellStart     = (unsigned**)malloc(ndevices*sizeof(unsigned*));
-    hdev_gridCellEnd       = (unsigned**)malloc(ndevices*sizeof(unsigned*));
+    hdev_cellStart         = (unsigned**)malloc(ndevices*sizeof(unsigned*));
+    hdev_cellEnd           = (unsigned**)malloc(ndevices*sizeof(unsigned*));
     hdev_x                 = (Float4**)malloc(ndevices*sizeof(Float4*));
     hdev_x_sorted          = (Float4**)malloc(ndevices*sizeof(Float4*));
     hdev_vel               = (Float4**)malloc(ndevices*sizeof(Float4*));
@@ -382,9 +382,9 @@ __host__ void DEM::allocateHelperDeviceMemory(void)
 
         // allocate space for full input arrays for interact()
         cudaMalloc((void**)&hdev_gridParticleIndex[d], sizeof(unsigned int)*np);
-        cudaMalloc((void**)&hdev_gridCellStart[d], sizeof(unsigned int)
+        cudaMalloc((void**)&hdev_cellStart[d], sizeof(unsigned int)
                    *grid.num[0]*grid.num[1]*grid.num[2]);
-        cudaMalloc((void**)&hdev_gridCellEnd[d], sizeof(unsigned int)
+        cudaMalloc((void**)&hdev_cellEnd[d], sizeof(unsigned int)
                    *grid.num[0]*grid.num[1]*grid.num[2]);
         cudaMalloc((void**)&hdev_x[d], memSizeF4);
         cudaMalloc((void**)&hdev_x_sorted[d], memSizeF4);
@@ -418,7 +418,11 @@ __host__ void DEM::allocateHelperDeviceMemory(void)
 // Transfer full input array values from main devices to helper devices
 __host__ void DEM::transferToHelperDevices()
 {
+    unsigned int memSizeF4 = sizeof(Float4) * np;
 
+    // from main device to host
+    //transferFromGlobalDeviceMemory();
+    
     for (int d=0; d<ndevices; d++) {
 
         // do not allocate memory on primary GPU
@@ -427,11 +431,35 @@ __host__ void DEM::transferToHelperDevices()
 
         cudaSetDevice(d);
 
+        // copy all input memory from main device to helper device(s)
+        cudaMemcpyPeer(hdev_gridParticleIndex[d], d,
+                       dev_gridParticleIndex, device, sizeof(unsigned)*np);
+        cudaMemcpyPeer(hdev_cellStart[d], d, dev_cellStart, device,
+                       sizeof(unsigned)*grid.num[0]*grid.num[1]*grid.num[2]);
+        cudaMemcpyPeer(hdev_cellEnd[d], d, dev_cellEnd, device,
+                       sizeof(unsigned)*grid.num[0]*grid.num[1]*grid.num[2]);
+        cudaMemcpyPeer(hdev_x[d], d, dev_x, device, memSizeF4);
+        cudaMemcpyPeer(hdev_x_sorted[d], d, dev_x_sorted, device, memSizeF4);
+        cudaMemcpyPeer(hdev_vel[d], d, dev_vel, device, memSizeF4);
+        cudaMemcpyPeer(hdev_vel_sorted[d], d,
+                       dev_vel_sorted, device, memSizeF4);
+        cudaMemcpyPeer(hdev_angvel[d], d, dev_angvel, device, memSizeF4);
+        cudaMemcpyPeer(hdev_angvel_sorted[d], d,
+                       dev_angvel_sorted, device, memSizeF4);
+        cudaMemcpyPeer(hdev_walls_nx[d], d,
+                       dev_walls_nx, device, sizeof(Float4)*walls.nw);
+        cudaMemcpyPeer(hdev_walls_mvfd[d], d,
+                       dev_walls_mvfd, device, sizeof(Float4)*walls.nw);
+        cudaMemcpyPeer(hdev_distmod[d], d,
+                       dev_distmod, device, memSizeF4*NC);
 
+        std::string desc = "During transferToHelperDevice " + d;
+        checkForCudaErrors(desc.c_str());
     }
     cudaSetDevice(device); // select main device
-
 }
+
+// Transfer piecewise out
 
 __host__ void DEM::freeHelperDeviceMemory()
 {
@@ -444,8 +472,8 @@ __host__ void DEM::freeHelperDeviceMemory()
         cudaSetDevice(d);
 
         cudaFree(hdev_gridParticleIndex[d]);
-        cudaFree(hdev_gridCellStart[d]);
-        cudaFree(hdev_gridCellEnd[d]);
+        cudaFree(hdev_cellStart[d]);
+        cudaFree(hdev_cellEnd[d]);
         cudaFree(hdev_x[d]);
         cudaFree(hdev_vel[d]);
         cudaFree(hdev_vel_sorted[d]);

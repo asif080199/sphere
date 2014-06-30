@@ -57,6 +57,7 @@ class DEM {
         int ndevices;     // number of CUDA GPUs
         int device;       // primary GPU
         int* domain_size; // elements per GPU
+        int* mem_offset;  // offset to first element per GPU
 
 
         // DEVICE ARRAYS
@@ -143,6 +144,10 @@ class DEM {
         void allocateHelperDeviceMemory();
         void freeHelperDeviceMemory();
 
+        // Transfer to and from helper devices
+        void transferToHelperDevices();
+        //void transferFromHelperDevices();
+
         // Free dynamically allocated global device memory
         void freeGlobalDeviceMemory();
         void rt_freeGlobalDeviceMemory();
@@ -216,8 +221,8 @@ class DEM {
 
         // Helper device arrays, input
         unsigned int** hdev_gridParticleIndex;
-        unsigned int** hdev_gridCellStart;
-        unsigned int** hdev_gridCellEnd;
+        unsigned int** hdev_cellStart;
+        unsigned int** hdev_cellEnd;
         Float4** hdev_x;
         Float4** hdev_x_sorted;
         Float4** hdev_vel;
