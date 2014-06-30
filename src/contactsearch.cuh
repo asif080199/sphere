@@ -740,8 +740,11 @@ __global__ void sortedToUnsorted(
         const Float  w_4_force = dev_walls_force_pp_sorted[idx+devC_np*4];
 
         unsigned int contacts[NC];
-        for (unsigned int i=0; i<NC; i++)
-            contacts[i] = dev_contacts_sorted[idx*devC_nc+i];
+        Float4 delta_t[NC];
+        for (unsigned int i=0; i<NC; i++) {
+            contacts[i] = dev_contacts_sorted[idx*devC_nc + i];
+            delta_t[i]  = dev_delta_t_sorted[idx*devC_nc + i]
+        }
 
         __syncthreads();
 
@@ -758,8 +761,10 @@ __global__ void sortedToUnsorted(
         dev_walls_force_pp[orig_idx+devC_np*2] = w_2_force;
         dev_walls_force_pp[orig_idx+devC_np*3] = w_3_force;
         dev_walls_force_pp[orig_idx+devC_np*4] = w_4_force;
-        for (unsigned int i=0; i<NC; i++)
-            dev_contacts[orig_idx*devC_nc+i] = contacts[i];
+        for (unsigned int i=0; i<NC; i++) {
+            dev_contacts[orig_idx*devC_nc + i] = contacts[i];
+            dev_delta_t[orig_idx*devC_nc + i]  = delta_t[i];
+        }
     }
 }
 
