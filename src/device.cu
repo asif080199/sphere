@@ -415,7 +415,32 @@ __host__ void DEM::allocateHelperDeviceMemory(void)
     cudaSetDevice(device); // select main device
 }
 
-// Transfer full input array values from main devices to helper devices
+// Create streams for asynchronous operations
+__host__ void DEM::createHelperStreams()
+{
+    // streams for asynchronous command execution
+    stream = (cudaStream_t*)malloc(sizeof(cudaStream_t)*ndevices);
+    
+    for (int d=0; d<ndevices; d++) {
+        cudaSetDevice(d);
+        cudaStreamCreate(&stream[d]);
+        checkForCudaErrors("During createHelperStreams");
+    }
+}
+
+__host__ void DEM::destroyHelperStreams()
+{
+    for (int d=0; d<ndevices; d++) {
+        cudaSetDevice(d);
+        cudaStreamDestroy(stream[d]);
+        checkForCudaErrors("During createHelperStreams");
+    }
+    free(stream);
+}
+
+// Transfer full input array values from main devices to helper devices.
+// Function could be accelerated by asynchronous memory transfers
+// (cudaMemcpyPeerAsync), which require streams.
 __host__ void DEM::transferToHelperDevices()
 {
     unsigned int memSizeF4 = sizeof(Float4) * np;
@@ -453,8 +478,7 @@ __host__ void DEM::transferToHelperDevices()
         cudaMemcpyPeer(hdev_distmod[d], d,
                        dev_distmod, device, memSizeF4*NC);
 
-        std::string desc = "During transferToHelperDevice " + d;
-        checkForCudaErrors(desc.c_str());
+        checkForCudaErrors("During transferToHelperDevice");
     }
     cudaSetDevice(device); // select main device
 }

@@ -54,10 +54,11 @@ class DEM {
         unsigned int height;
 
         // Device management
-        int ndevices;     // number of CUDA GPUs
-        int device;       // primary GPU
-        int* domain_size; // elements per GPU
-        int* mem_offset;  // offset to first element per GPU
+        int ndevices;         // number of CUDA GPUs
+        int device;           // primary GPU
+        int* domain_size;     // elements per GPU
+        int* mem_offset;      // offset to first element per GPU
+        cudaStream_t* stream; // streams for asynchronous command execution
 
 
         // DEVICE ARRAYS
@@ -144,6 +145,10 @@ class DEM {
         void allocateHelperDeviceMemory();
         void freeHelperDeviceMemory();
 
+        // Streams for asynchronous (simultaneous) data transfer between devices
+        void createHelperStreams();
+        void destroyHelperStreams();
+        
         // Transfer to and from helper devices
         void transferToHelperDevices();
         //void transferFromHelperDevices();
