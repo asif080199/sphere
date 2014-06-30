@@ -695,5 +695,73 @@ __global__ void interact(
 } // End of interact(...)
 
 
+// Copy output values interact function from sorted to unsorted arrays,
+// and perform simple integration of shear and viscous energies
+__global__ void sortedToUnsorted(
+    unsigned int* dev_gridParticleIndex, // in
+    Float4* dev_force_sorted,            // in
+    Float4* dev_torque_sorted,           // in
+    Float* dev_es_dot_sorted,            // in
+    Float* dev_ev_dot_sorted,            // in
+    Float* dev_p_sorted,                 // in
+    Float* dev_walls_force_pp_sorted,    // in
+    unsigned int* dev_contacts_sorted,   // in
+    Float4* dev_delta_t_sorted,          // in
+    Float* dev_es,                   // in+out
+    Float* dev_ev,                   // in+out
+    Float4* dev_force,            // out
+    Float4* dev_torque,           // out
+    Float* dev_es_dot,            // out
+    Float* dev_ev_dot,            // out
+    Float* dev_p,                 // out
+    Float* dev_walls_force_pp,    // out
+    unsigned int* dev_contacts,   // out
+    Float4* dev_delta_t)          // out
+{
+
+    // Thread index equals index of particle A
+    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx < devC_np) {
+
+        __syncthreads();
+        unsigned int orig_idx = dev_gridParticleIndex[idx];
+
+        // Read values
+        const Float4 force  = dev_force_sorted[idx];
+        const Float4 torque = dev_torque_sorted[idx];
+        const Float  es_dot = dev_es_dot_sorted[idx];
+        const Float  ev_dot = dev_ev_dot_sorted[idx];
+        const Float  p      = dev_p_sorted[idx];
+        const Float  w_0_force = dev_walls_force_pp_sorted[idx];
+        const Float  w_1_force = dev_walls_force_pp_sorted[idx+devC_np];
+        const Float  w_2_force = dev_walls_force_pp_sorted[idx+devC_np*2];
+        const Float  w_3_force = dev_walls_force_pp_sorted[idx+devC_np*3];
+        const Float  w_4_force = dev_walls_force_pp_sorted[idx+devC_np*4];
+
+        unsigned int contacts[NC];
+        for (unsigned int i=0; i<NC; i++)
+            contacts[i] = dev_contacts_sorted[idx*devC_nc+i];
+
+        __syncthreads();
+
+        // Write values
+        dev_force[orig_idx]  = force;
+        dev_torque[orig_idx] = torque;
+        dev_es_dot[orig_idx] = es_dot;
+        dev_ev_dot[orig_idx] = ev_dot;
+        dev_es[orig_idx]    += es_dot*devC_dt;
+        dev_ev[orig_idx]    += ev_dot*devC_dt;
+        dev_p[orig_idx]      = p;
+        dev_walls_force_pp[orig_idx]           = w_0_force;
+        dev_walls_force_pp[orig_idx+devC_np]   = w_1_force;
+        dev_walls_force_pp[orig_idx+devC_np*2] = w_2_force;
+        dev_walls_force_pp[orig_idx+devC_np*3] = w_3_force;
+        dev_walls_force_pp[orig_idx+devC_np*4] = w_4_force;
+        for (unsigned int i=0; i<NC; i++)
+            dev_contacts[orig_idx*devC_nc+i] = contacts[i];
+    }
+}
+
 #endif
 // vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4

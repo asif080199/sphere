@@ -361,16 +361,14 @@ __host__ void DEM::allocateHelperDeviceMemory(void)
     hdev_walls_mvfd        = (Float4**)malloc(ndevices*sizeof(Float4*));
     hdev_distmod           = (Float4**)malloc(ndevices*sizeof(Float4*));
 
-    hdev_force             = (Float4**)malloc(ndevices*sizeof(Float4*));
-    hdev_torque            = (Float4**)malloc(ndevices*sizeof(Float4*));
-    hdev_delta_t           = (Float4**)malloc(ndevices*sizeof(Float4*));
-    hdev_es_dot            = (Float**)malloc(ndevices*sizeof(Float*));
-    hdev_es                = (Float**)malloc(ndevices*sizeof(Float*));
-    hdev_ev_dot            = (Float**)malloc(ndevices*sizeof(Float*));
-    hdev_ev                = (Float**)malloc(ndevices*sizeof(Float*));
-    hdev_p                 = (Float**)malloc(ndevices*sizeof(Float*));
-    hdev_walls_force_pp    = (Float**)malloc(ndevices*sizeof(Float*));
-    hdev_contacts          = (unsigned**)malloc(ndevices*sizeof(unsigned*));
+    hdev_force_sorted          = (Float4**)malloc(ndevices*sizeof(Float4*));
+    hdev_torque_sorted         = (Float4**)malloc(ndevices*sizeof(Float4*));
+    hdev_delta_t_sorted        = (Float4**)malloc(ndevices*sizeof(Float4*));
+    hdev_es_dot_sorted         = (Float**)malloc(ndevices*sizeof(Float*));
+    hdev_ev_dot_sorted         = (Float**)malloc(ndevices*sizeof(Float*));
+    hdev_p_sorted              = (Float**)malloc(ndevices*sizeof(Float*));
+    hdev_walls_force_pp_sorted = (Float**)malloc(ndevices*sizeof(Float*));
+    hdev_contacts_sorted       = (unsigned**)malloc(ndevices*sizeof(unsigned*));
 
     for (int d=0; d<ndevices; d++) {
 
@@ -397,18 +395,17 @@ __host__ void DEM::allocateHelperDeviceMemory(void)
         cudaMalloc((void**)&hdev_distmod[d], memSizeF4*NC);
 
         // allocate space for partial output arrays for interact()
-        cudaMalloc((void**)&hdev_force[d], sizeof(Float4)*domain_size[d]);
-        cudaMalloc((void**)&hdev_torque[d], sizeof(Float4)*domain_size[d]);
-        cudaMalloc((void**)&hdev_es_dot[d], sizeof(Float)*domain_size[d]);
-        cudaMalloc((void**)&hdev_ev_dot[d], sizeof(Float)*domain_size[d]);
-        cudaMalloc((void**)&hdev_es[d], sizeof(Float)*domain_size[d]);
-        cudaMalloc((void**)&hdev_ev[d], sizeof(Float)*domain_size[d]);
-        cudaMalloc((void**)&hdev_p[d], sizeof(Float)*domain_size[d]);
-        cudaMalloc((void**)&hdev_walls_force_pp[d],
+        cudaMalloc((void**)&hdev_force_sorted[d], sizeof(Float4)*domain_size[d]);
+        cudaMalloc((void**)&hdev_torque_sorted[d], sizeof(Float4)*domain_size[d]);
+        cudaMalloc((void**)&hdev_es_dot_sorted[d], sizeof(Float)*domain_size[d]);
+        cudaMalloc((void**)&hdev_ev_dot_sorted[d], sizeof(Float)*domain_size[d]);
+        cudaMalloc((void**)&hdev_p_sorted[d], sizeof(Float)*domain_size[d]);
+        cudaMalloc((void**)&hdev_walls_force_pp_sorted[d],
                    sizeof(Float)*domain_size[d]*walls.nw);
-        cudaMalloc((void**)&hdev_contacts[d],
+        cudaMalloc((void**)&hdev_contacts_sorted[d],
                    sizeof(unsigned)*domain_size[d]*NC);
-        cudaMalloc((void**)&hdev_delta_t[d], sizeof(Float4)*domain_size[d]*NC);
+        cudaMalloc((void**)&hdev_delta_t_sorted[d],
+                   sizeof(Float4)*domain_size[d]*NC);
 
         checkForCudaErrors("During allocateGlobalDeviceMemoryOtherDevices");
     }
@@ -485,6 +482,9 @@ __host__ void DEM::transferToHelperDevices()
         cudaMemcpyPeerAsync(hdev_distmod[d], d, dev_distmod, device,
                             memSizeF4*NC, stream[d]);
 
+        // TODO: copy energy sum arrays due to += operations in interact() or
+        // create a separate kernel which does es += es_dot * devC_dt
+
     }
 
     for (int d=0; d<ndevices; d++) {
@@ -497,7 +497,21 @@ __host__ void DEM::transferToHelperDevices()
     cudaSetDevice(device); // select main device
 }
 
-// Transfer piecewise out
+// Transfer piecewise output array values from helper devices to main device
+__host__ void DEM::transferFromHelperDevices()
+{
+    for (int d=0; d<ndevices; d++) {
+
+        if (d == device)
+            continue;
+
+        cudaSetDevice(d);
+
+
+    }
+}
+
+
 
 __host__ void DEM::freeHelperDeviceMemory()
 {
