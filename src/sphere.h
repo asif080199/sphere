@@ -53,6 +53,16 @@ class DEM {
         unsigned int width;
         unsigned int height;
 
+        // Constant memory pointers for helper devices
+        unsigned int* hdevC_nd;
+        unsigned int* hdevC_np;
+        unsigned int* hdevC_nw;
+        int* hdevC_nc;
+        Float* hdevC_dt;
+        unsigned int* hdevC_nb0;
+        Params* hdevC_params;
+        Grid* hdevC_grid;
+
         // Device management
         int ndevices;         // number of CUDA GPUs
         int device;           // primary GPU

@@ -235,24 +235,45 @@ __host__ void DEM::transferToConstantDeviceMemory()
     if (verbose == 1)
         cout << "  Transfering data to constant device memory:     ";
 
-    /*for (int d=0; d<ndevices; d++) {
-      cudaSetDevice(d);*/
-        cudaMemcpyToSymbol(devC_nd, &nd, sizeof(nd));
-        cudaMemcpyToSymbol(devC_np, &np, sizeof(np));
-        cudaMemcpyToSymbol(devC_nw, &walls.nw, sizeof(unsigned int));
-        cudaMemcpyToSymbol(devC_nc, &NC, sizeof(int));
-        cudaMemcpyToSymbol(devC_dt, &time.dt, sizeof(Float));
-        cudaMemcpyToSymbol(devC_grid, &grid, sizeof(Grid));
-        cudaMemcpyToSymbol(devC_params, &params, sizeof(Params));
-        /*}
-          cudaSetDevice(device);*/
-
+    // Copy to main device
+    cudaMemcpyToSymbol(devC_nd, &nd, sizeof(nd));
+    cudaMemcpyToSymbol(devC_np, &np, sizeof(np));
+    cudaMemcpyToSymbol(devC_nw, &walls.nw, sizeof(unsigned int));
+    cudaMemcpyToSymbol(devC_nc, &NC, sizeof(int));
+    cudaMemcpyToSymbol(devC_dt, &time.dt, sizeof(Float));
+    cudaMemcpyToSymbol(devC_grid, &grid, sizeof(Grid));
+    cudaMemcpyToSymbol(devC_params, &params, sizeof(Params));
     checkForCudaErrors("After transferring to device constant memory");
+
+    // Allocate constant memory on helper devices
+    hdevC_nd     = (unsigned*)malloc(ndevices*sizeof(unsigned));
+    hdevC_np     = (unsigned*)malloc(ndevices*sizeof(unsigned));
+    hdevC_nw     = (unsigned*)malloc(ndevices*sizeof(unsigned));
+    hdevC_nc     = (int*)malloc(ndevices*sizeof(int));
+    hdevC_dt     = (Float*)malloc(ndevices*sizeof(Float));
+    hdevC_nb0    = (unsigned*)malloc(ndevices*sizeof(unsigned));
+    hdevC_params = (Params*)malloc(ndevices*sizeof(Params));
+    hdevC_grid   = (Grid*)malloc(ndevices*sizeof(Grid));
+
+    // Copy to helper devices (and main device)
+    for (int d=0; d<ndevices; d++) {
+        cudaSetDevice(d);
+
+        cudaMemcpyToSymbol(hdevC_nd[d], &nd, sizeof(nd));
+        cudaMemcpyToSymbol(hdevC_np[d], &np, sizeof(np));
+        cudaMemcpyToSymbol(hdevC_nw[d], &walls.nw, sizeof(unsigned int));
+        cudaMemcpyToSymbol(hdevC_nc[d], &NC, sizeof(int));
+        cudaMemcpyToSymbol(hdevC_dt[d], &time.dt, sizeof(Float));
+        cudaMemcpyToSymbol(hdevC_grid[d], &grid, sizeof(Grid));
+        cudaMemcpyToSymbol(hdevC_params[d], &params, sizeof(Params));
+        checkForCudaErrors("During transfer to helper device constant memory");
+    }
+    cudaSetDevice(device);
 
     if (verbose == 1)
         cout << "Done\n";
 
-    // only for device with most CUDA cores
+    // only for main device
     checkConstantMemory();
 }
 
